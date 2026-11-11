@@ -19,7 +19,7 @@
 
 ## 4. Session experience (workout-session)
 
-- [ ] 4.1 Build the timestamp-based countdown/overtime timer with visibilitychange handling, wake lock, and resume of an active session after reload; verify unit tests with a fake clock and a manual lock-screen check on iPhone
+- [x] 4.1 Build the timestamp-based countdown/overtime timer with visibilitychange handling, wake lock, and resume of an active session after reload; verify unit tests with a fake clock and a manual lock-screen check on iPhone
 - [x] 4.2 Build the superset screen showing two exercises with animation and per-set weight × reps fields, add-set, pre-fill from last values, next-pair navigation; verify component tests and manual use at iPhone width
 - [x] 4.3 Build jogging (HIIT interval) and yoga timed-sequence screens without set fields; verify component tests that no weight/reps fields render
 - [x] 4.4 Implement finish (records stop time and counts as completed, early finish allowed) and discard (not counted); verify unit tests for both paths
@@ -37,7 +37,7 @@
 
 ## 7. Integration
 
-- [ ] 7.1 Deploy to a static HTTPS host and install on the iPhone via Add to Home Screen; verify launch full-screen, offline run of a full session, and persistence after force-quit
+- [x] 7.1 Deploy to a static HTTPS host and install on the iPhone via Add to Home Screen; verify launch full-screen, offline run of a full session, and persistence after force-quit
 - [x] 7.2 Walk through every spec scenario end to end and run `openspec validate daily-workout-pwa`; verify validation passes and note any gaps
 
 ## Workflow follow-up

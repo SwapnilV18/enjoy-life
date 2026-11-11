@@ -34,6 +34,21 @@ describe('Home', () => {
     expect(screen.getByRole('button', { name: 'Start' })).toBeTruthy();
     expect(screen.getByTestId('week-progress').textContent).toBe('0 of 5');
   });
+  it('shows the Enjoy Life masthead and hero streak above Start', () => {
+    render(<App />);
+    expect(screen.getByRole('heading', { name: 'Enjoy Life' })).toBeTruthy();
+    const streak = screen.getByTestId('streak');
+    expect(streak.textContent).toContain('Start today to begin a streak');
+    const start = screen.getByRole('button', { name: 'Start' });
+    expect(streak.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it('fills one week dot per workout day', () => {
+    vi.setSystemTime(new Date(2026, 0, 9, 7, 0));
+    seed({ sessions: [doneSession('2026-01-05'), doneSession('2026-01-06'), doneSession('2026-01-08')] });
+    render(<App />);
+    expect(document.querySelectorAll('.hero-streak .dots i.on').length).toBe(3);
+    expect(document.querySelectorAll('.hero-streak .dots i').length).toBe(5);
+  });
   it('reopening the same day shows the same recommendation', () => {
     const a = render(<App />);
     const first = screen.getByTestId('recommendation').textContent;

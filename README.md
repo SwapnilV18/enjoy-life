@@ -11,6 +11,7 @@ Built with Preact, TypeScript and Vite; tested with Vitest.
 - **Session screen**: a very large countdown timer (continues as overtime), recorded start/stop times, and the timer stays correct through screen lock and reloads.
 - **Supersets**: two exercises on screen at a time, each with start/end photos and compact `weight × reps` fields. Fields pre-fill from your last values, and sets can be added.
 - **Session types**: Jogging (HIIT), Back and Legs, Chest and Legs, Biceps and Shoulders, Triceps and Abs, Yoga. Jogging and Yoga run as timed sequences without set fields.
+- **Landing screen**: a large two-style "Enjoy" / "Life" masthead and a hero streak (flame, big number, five week dots) above the Start button.
 - **Streak**: weekly target of 5 (Mon–Sun) with up to 2 rest days per week; the third missed day resets the streak. Derived from history, never stored.
 - **Celebration**: an animated "I know how you are feeling… SuperStar." screen after finishing, with a reduced-motion fallback, then a summary.
 - **Offline and installable**: works in airplane mode after the first load; installs to the iPhone Home Screen as "Enjoy Life".

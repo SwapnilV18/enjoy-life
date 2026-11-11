@@ -51,3 +51,20 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .celebrate *, .celebrate { animation: none !important; } }
 .summary { justify-content: center; text-align: center; }
 .summary h1 { font-size: 40px; color: var(--gold); text-transform: none; letter-spacing: 0; }
+.home { gap: 10px; }
+.mast { display: flex; flex-direction: column; align-items: center; line-height: .88; text-transform: none; letter-spacing: normal; color: var(--fg); margin: 4px 0 6px; }
+.mast .w1 { font-size: clamp(56px, 20vw, 92px); font-weight: 900; letter-spacing: -.04em; font-family: -apple-system, system-ui, sans-serif; }
+.mast .w2 { font-size: clamp(60px, 22vw, 100px); font-weight: 400; font-style: italic; font-family: ui-serif, 'New York', Georgia, serif; color: var(--gold); background: linear-gradient(100deg, #ffe39a, #f2c14e 45%, #e08a3c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; padding: 0 .1em .08em; margin-top: -.05em; }
+@media (prefers-reduced-motion: no-preference) {
+  .mast .w1 { animation: slidein .7s cubic-bezier(.2,.9,.3,1) both; }
+  .mast .w2 { animation: slidein .7s .15s cubic-bezier(.2,.9,.3,1) both; }
+}
+@keyframes slidein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.hero-streak { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px; background: var(--panel); border-radius: 22px; border: 1px solid var(--line); }
+.hero-streak .flame { width: 30px; height: 30px; color: var(--gold); }
+.hero-streak .num { font-size: clamp(56px, 18vw, 76px); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.hero-streak .cap { color: var(--dim); font-size: 14px; }
+.hero-streak .dots { display: flex; gap: 8px; margin: 8px 0 2px; }
+.hero-streak .dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); }
+.hero-streak .dots i.on { background: var(--gold); border-color: var(--gold); }
+.hero-streak .wk { font-weight: 700; font-size: 16px; }

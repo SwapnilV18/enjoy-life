@@ -1,4 +1,5 @@
 import type { DateKey } from './domain/dates';
+import { NUDGES, validNudgeState, type NudgeState } from './domain/nudge';
 import type { Recommendation } from './domain/plan';
 import type { LoggedSet, Session } from './domain/types';
 
@@ -11,9 +12,10 @@ export interface Store {
   activeSession: Session | null;
   lastSets: Record<string, LoggedSet>; // last-used weight × reps per exercise id
   planCache: { date: DateKey; rec: Recommendation } | null;
+  nudge: NudgeState | null; // shuffle-bag progress for reminder messages
 }
 
-export const emptyStore = (): Store => ({ version: SCHEMA_VERSION, sessions: [], activeSession: null, lastSets: {}, planCache: null });
+export const emptyStore = (): Store => ({ version: SCHEMA_VERSION, sessions: [], activeSession: null, lastSets: {}, planCache: null, nudge: null });
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 
@@ -30,6 +32,7 @@ export function parseStore(raw: string | null): Store {
       activeSession: isObj(d.activeSession) && typeof d.activeSession.startedAt === 'number' ? (d.activeSession as unknown as Session) : null,
       lastSets: isObj(d.lastSets) ? (d.lastSets as Store['lastSets']) : {},
       planCache: isObj(d.planCache) && typeof d.planCache.date === 'string' && isObj(d.planCache.rec) ? (d.planCache as unknown as Store['planCache']) : null,
+      nudge: validNudgeState(d.nudge, NUDGES.length) ? d.nudge : null,
     };
   } catch {
     return base;

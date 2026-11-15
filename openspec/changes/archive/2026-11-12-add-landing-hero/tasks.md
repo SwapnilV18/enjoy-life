@@ -14,7 +14,7 @@
 
 ## 3. Publish
 
-- [ ] 3.1 After review, with the user's confirmation, publish to GitHub Pages: ensure a GitHub remote exists, push, enable Pages from Actions, and verify the workflow run succeeds and the live URL loads and installs on the iPhone
+- [x] 3.1 After review, with the user's confirmation, publish to GitHub Pages: ensure a GitHub remote exists, push, enable Pages from Actions, and verify the workflow run succeeds and the live URL loads and installs on the iPhone
 
 ## Workflow follow-up
 

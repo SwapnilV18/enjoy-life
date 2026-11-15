@@ -55,10 +55,11 @@ interface Props {
   rec: Recommendation;
   streak: StreakInfo;
   done?: Session;
+  nudge?: string;
   onStart: (type: WorkoutTypeId) => void;
 }
 
-export function Home({ rec, streak, done, onStart }: Props) {
+export function Home({ rec, streak, done, nudge, onStart }: Props) {
   const [choosing, setChoosing] = useState(false);
   if (done) {
     return (
@@ -75,6 +76,7 @@ export function Home({ rec, streak, done, onStart }: Props) {
     <main class="screen home">
       <Masthead />
       <StreakHero info={streak} />
+      {nudge && <p class="nudge" data-testid="nudge">{nudge}</p>}
       <p class="meta">Today</p>
       <h2 class="today" data-testid="recommendation">{getType(rec.type).name}</h2>
       <p class="dur" data-testid="duration">{rec.durationMin} minutes</p>

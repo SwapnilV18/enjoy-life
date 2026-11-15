@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { dateKey } from '../domain/dates';
 import type { WorkoutTypeId } from '../domain/library';
 import { discardSession, doneToday, finishSession, logSets, startSession, streakFor, todaysPlan } from '../domain/session';
+import { NUDGES, nextMessage } from '../domain/nudge';
 import type { LoggedSet, Session } from '../domain/types';
 import { loadStore, requestPersistence, saveStore, type Store } from '../storage';
 import { Celebration } from './Celebration';
@@ -32,6 +33,22 @@ export function App() {
     if (plan.store !== store) commit(plan.store);
   }, [plan.store]);
 
+  // One fresh message per open (cold start or returning to the app), only while today is not done.
+  const [nudge, setNudge] = useState<string | null>(null);
+  useEffect(() => {
+    const open = () => {
+      if (document.visibilityState === 'hidden') return;
+      const cur = ref.current;
+      if (cur.activeSession || doneToday(cur, dateKey(Date.now()))) return;
+      const { index, state } = nextMessage(cur.nudge, NUDGES.length);
+      commit({ ...cur, nudge: state });
+      setNudge(NUDGES[index]);
+    };
+    open();
+    document.addEventListener('visibilitychange', open);
+    return () => document.removeEventListener('visibilitychange', open);
+  }, []);
+
   if (store.activeSession) {
     return (
       <SessionScreen
@@ -54,6 +71,7 @@ export function App() {
   return (
     <Home
       rec={plan.rec}
+      nudge={nudge ?? undefined}
       streak={streak}
       done={doneToday(store, today)}
       onStart={(type: WorkoutTypeId) => {

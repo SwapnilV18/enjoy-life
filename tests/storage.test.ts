@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NUDGES } from '../src/domain/nudge';
 import { STORAGE_KEY, emptyStore, loadStore, parseStore, saveStore } from '../src/storage';
 
 const mem = () => {
@@ -33,4 +34,12 @@ describe('storage', () => {
     expect(saveStore(emptyStore(), bad)).toBe(false);
   });
   it('uses a versioned key', () => expect(STORAGE_KEY).toContain('v1'));
+  it('keeps valid nudge state and drops malformed or wrong-size state', () => {
+    const base = { version: 1, sessions: [], activeSession: null, lastSets: {}, planCache: null };
+    expect(parseStore(JSON.stringify(base)).nudge).toBeNull();
+    expect(parseStore(JSON.stringify({ ...base, nudge: { order: [0, 1], pos: 1, last: 0 } })).nudge).toBeNull();
+    expect(parseStore(JSON.stringify({ ...base, nudge: 'x' })).nudge).toBeNull();
+    const order = Array.from({ length: NUDGES.length }, (_, i) => i);
+    expect(parseStore(JSON.stringify({ ...base, nudge: { order, pos: 2, last: 1 } })).nudge).toEqual({ order, pos: 2, last: 1 });
+  });
 });

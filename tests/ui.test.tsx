@@ -49,6 +49,20 @@ describe('Home', () => {
     expect(document.querySelectorAll('.hero-streak .dots i.on').length).toBe(3);
     expect(document.querySelectorAll('.hero-streak .dots i').length).toBe(5);
   });
+  it('shows a different reminder message on each open, stable while visible', () => {
+    const a = render(<App />);
+    const first = screen.getByTestId('nudge').textContent;
+    expect(first).toBeTruthy();
+    expect(screen.getByTestId('nudge').textContent).toBe(first);
+    a.unmount();
+    render(<App />);
+    expect(screen.getByTestId('nudge').textContent).not.toBe(first);
+  });
+  it('shows no reminder once today is done', () => {
+    seed({ sessions: [doneSession(dateKey(NOW))] });
+    render(<App />);
+    expect(screen.queryByTestId('nudge')).toBeNull();
+  });
   it('reopening the same day shows the same recommendation', () => {
     const a = render(<App />);
     const first = screen.getByTestId('recommendation').textContent;

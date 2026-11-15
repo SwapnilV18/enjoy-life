@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { addDays, dateKey, parseKey, type DateKey } from '../domain/dates';
-import { getExercise, getType } from '../domain/library';
-import { EDIT_MESSAGES, editSessionTimes, sessionsOn, type EditResult } from '../domain/session';
+import { WORKOUT_TYPES, getExercise, getType, type WorkoutTypeId } from '../domain/library';
+import { EDIT_MESSAGES, MAX_SESSIONS_PER_DAY, durationTarget, sessionsOn, type EditResult, type PastWorkout } from '../domain/session';
 import type { Session } from '../domain/types';
 import type { Store } from '../storage';
 
@@ -60,14 +60,50 @@ function SessionLog({ s, extra, onSave }: { s: Session; extra: boolean; onSave: 
   );
 }
 
+function LogForm({ date, target, onAdd, onClose }: { date: DateKey; target: number; onAdd: (w: PastWorkout) => EditResult; onClose: () => void }) {
+  const [type, setType] = useState<WorkoutTypeId>(WORKOUT_TYPES[0].id);
+  const [time, setTime] = useState('07:00');
+  const [minutes, setMinutes] = useState(String(target));
+  const [msg, setMsg] = useState<string | null>(null);
+  return (
+    <section class="log-card" data-testid="log-form">
+      <h3>Log a workout</h3>
+      <div class="chooser" role="group" aria-label="Workout type">
+        {WORKOUT_TYPES.map((t) => (
+          <button key={t.id} class={t.id === type ? 'chip on' : 'chip'} aria-pressed={t.id === type} onClick={() => setType(t.id)}>{t.name}</button>
+        ))}
+      </div>
+      <div class="edit">
+        <label>Start time<input type="time" aria-label="Start time" value={time} onInput={(e) => setTime((e.target as HTMLInputElement).value)} /></label>
+        <label>Minutes<input type="number" inputMode="numeric" min={1} max={180} aria-label="Minutes" value={minutes} onInput={(e) => setMinutes((e.target as HTMLInputElement).value)} /></label>
+        <button
+          class="primary"
+          onClick={() => {
+            const [h, m] = time.split(':').map(Number);
+            const r = onAdd({ type, date, startMinutes: h * 60 + m, minutes: Number(minutes) });
+            if (r.ok) onClose();
+            else setMsg(EDIT_MESSAGES[r.error]);
+          }}
+        >
+          Save workout
+        </button>
+        {msg && <p class="meta" role="status" data-testid="log-msg">{msg}</p>}
+        <button class="link" onClick={onClose}>Cancel</button>
+      </div>
+    </section>
+  );
+}
+
 interface Props {
   store: Store;
   onBack: () => void;
   onSave: (id: string, start: number, stop: number) => EditResult;
+  onAdd: (w: PastWorkout) => EditResult;
   now?: number;
 }
 
-export function History({ store, onBack, onSave, now = Date.now() }: Props) {
+export function History({ store, onBack, onSave, onAdd, now = Date.now() }: Props) {
+  const [logging, setLogging] = useState(false);
   const todayKey = dateKey(now);
   const [ym, setYm] = useState(() => ({ y: new Date(now).getFullYear(), m: new Date(now).getMonth() }));
   const [selected, setSelected] = useState<DateKey | null>(null);
@@ -76,6 +112,7 @@ export function History({ store, onBack, onSave, now = Date.now() }: Props) {
     const d = new Date(ym.y, ym.m + n, 1);
     setYm({ y: d.getFullYear(), m: d.getMonth() });
     setSelected(null);
+    setLogging(false);
   };
   const title = new Date(ym.y, ym.m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' });
   const day = selected ? sessionsOn(store, selected) : [];
@@ -95,7 +132,7 @@ export function History({ store, onBack, onSave, now = Date.now() }: Props) {
           const n = sessionsOn(store, k).length;
           const cls = ['day', n ? 'on' : '', n > 1 ? 'extra' : '', k === todayKey ? 'now' : '', k === selected ? 'sel' : ''].join(' ').trim();
           return (
-            <button key={k} class={cls} data-testid={`cal-day-${k}`} data-sessions={n} aria-label={`${k}${n ? `, ${n} session${n > 1 ? 's' : ''}` : ''}`} onClick={() => setSelected(k)}>
+            <button key={k} class={cls} data-testid={`cal-day-${k}`} data-sessions={n} aria-label={`${k}${n ? `, ${n} session${n > 1 ? 's' : ''}` : ''}`} onClick={() => { setSelected(k); setLogging(false); }}>
               {Number(k.slice(8))}
             </button>
           );
@@ -105,6 +142,11 @@ export function History({ store, onBack, onSave, now = Date.now() }: Props) {
         <div class="day-log" data-testid="day-log">
           <h3>{parseKey(selected).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
           {day.length === 0 ? <p class="meta" data-testid="no-session">No session logged this day.</p> : day.map((s, i) => <SessionLog key={s.id} s={s} extra={i > 0} onSave={onSave} />)}
+          {logging ? (
+            <LogForm date={selected} target={durationTarget(store, selected)} onAdd={onAdd} onClose={() => setLogging(false)} />
+          ) : (
+            selected <= todayKey && day.length < MAX_SESSIONS_PER_DAY && <button class="chip" onClick={() => setLogging(true)}>Log a workout</button>
+          )}
         </div>
       )}
     </main>

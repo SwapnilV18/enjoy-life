@@ -1,6 +1,6 @@
-import { addDays, dateKey, type DateKey } from './dates';
-import { getType, type WorkoutTypeId } from './library';
-import { recommend, recommendType, type Recommendation } from './plan';
+import { addDays, dateKey, parseKey, type DateKey } from './dates';
+import { WORKOUT_TYPES, getType, type WorkoutTypeId } from './library';
+import { durationFor, recommend, recommendType, type Recommendation } from './plan';
 import { computeStreak, type StreakInfo } from './streak';
 import type { Store } from '../storage';
 import type { LoggedSet, Session } from './types';
@@ -90,7 +90,7 @@ export function discardSession(store: Store): Store {
   return { ...store, activeSession: null };
 }
 
-export type EditError = 'missing' | 'order' | 'future' | 'full';
+export type EditError = 'missing' | 'order' | 'future' | 'full' | 'range';
 export type EditResult = { ok: true; store: Store } | { ok: false; error: EditError };
 
 /** Change a completed session's start and stop times; its date follows the start time. */
@@ -120,9 +120,40 @@ export const EDIT_MESSAGES: Record<EditError, string> = {
   order: 'The end time must be after the start time.',
   future: 'The end time cannot be in the future.',
   full: 'That day already has two sessions.',
+  range: 'Duration must be between 1 and 180 minutes.',
 };
 
 /** A running session is stale when it began on an earlier day or has run for over 4 hours. */
 export function isStale(a: Session, now: number): boolean {
   return a.date !== dateKey(now) || now - a.startedAt > 4 * 3600_000;
+}
+
+/** Target length (15 or 20) that applied on `date`, from the sessions done before it. */
+export function durationTarget(store: Store, date: DateKey): 15 | 20 {
+  return durationFor(history(store).map((h) => h.date).filter((d) => d < date), date);
+}
+
+export interface PastWorkout {
+  type: WorkoutTypeId;
+  date: DateKey;
+  /** Minutes after local midnight. */
+  startMinutes: number;
+  minutes: number;
+}
+
+/** Record a workout that happened earlier. Counts like a live session (streak, week, extras). */
+export function addPastSession(store: Store, w: PastWorkout, now: number): EditResult {
+  if (!WORKOUT_TYPES.some((t) => t.id === w.type)) return { ok: false, error: 'missing' };
+  if (!Number.isInteger(w.minutes) || w.minutes < 1 || w.minutes > 180) return { ok: false, error: 'range' };
+  if (!Number.isInteger(w.startMinutes) || w.startMinutes < 0 || w.startMinutes >= 24 * 60) return { ok: false, error: 'order' };
+  const day = parseKey(w.date);
+  day.setHours(0, w.startMinutes, 0, 0);
+  const startedAt = day.getTime();
+  const stoppedAt = startedAt + w.minutes * 60_000;
+  if (stoppedAt > now) return { ok: false, error: 'future' };
+  if (sessionsOn(store, w.date).length >= MAX_SESSIONS_PER_DAY) return { ok: false, error: 'full' };
+  let id = `s-${startedAt}`;
+  while (store.sessions.some((s) => s.id === id)) id += 'b';
+  const session: Session = { id, date: w.date, type: w.type, durationMin: durationTarget(store, w.date), startedAt, stoppedAt, completed: true, sets: {} };
+  return { ok: true, store: { ...store, sessions: [...store.sessions, session] } };
 }

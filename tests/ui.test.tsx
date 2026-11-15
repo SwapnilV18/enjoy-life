@@ -267,3 +267,52 @@ describe('Forgotten session', () => {
     expect(s.sessions[0]).toMatchObject({ completed: true, date: '2026-01-06', stoppedAt: new Date('2026-01-06T07:14').getTime() });
   });
 });
+
+describe('Log a past workout', () => {
+  const openDay = (key: string) => {
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    fireEvent.click(screen.getByTestId(`cal-day-${key}`));
+  };
+  it('backfills a missed day: calendar marks it and the log shows the times', () => {
+    render(<App />);
+    openDay('2026-01-05');
+    expect(screen.getByTestId('no-session')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Log a workout' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Chest and Legs' }));
+    fireEvent.input(screen.getByLabelText('Start time'), { target: { value: '07:30' } });
+    expect((screen.getByLabelText('Minutes') as HTMLInputElement).value).toBe('15');
+    fireEvent.click(screen.getByRole('button', { name: 'Save workout' }));
+    expect(screen.getByTestId('cal-day-2026-01-05').getAttribute('data-sessions')).toBe('1');
+    expect(within(screen.getByTestId('day-log')).getByText('Chest and Legs')).toBeTruthy();
+    expect(screen.getByTestId('log-times').textContent).toMatch(/07:30.*07:45.*15 min/);
+    expect(loadStore().sessions[0]).toMatchObject({ type: 'chest-legs', date: '2026-01-05', completed: true });
+  });
+  it('offers exactly the six app types', () => {
+    render(<App />);
+    openDay('2026-01-05');
+    fireEvent.click(screen.getByRole('button', { name: 'Log a workout' }));
+    const names = within(screen.getByRole('group', { name: 'Workout type' })).getAllByRole('button').map((b) => b.textContent);
+    expect(names).toEqual(['Jogging (HIIT)', 'Back and Legs', 'Chest and Legs', 'Biceps and Shoulders', 'Triceps and Abs', 'Yoga']);
+  });
+  it('refuses a bad duration and a future time, leaving the log unchanged', () => {
+    render(<App />);
+    openDay('2026-01-07'); // today (07:30 now)
+    fireEvent.click(screen.getByRole('button', { name: 'Log a workout' }));
+    fireEvent.input(screen.getByLabelText('Minutes'), { target: { value: '500' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save workout' }));
+    expect(screen.getByTestId('log-msg').textContent).toMatch(/between 1 and 180/);
+    fireEvent.input(screen.getByLabelText('Minutes'), { target: { value: '15' } });
+    fireEvent.input(screen.getByLabelText('Start time'), { target: { value: '20:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save workout' }));
+    expect(screen.getByTestId('log-msg').textContent).toMatch(/future/);
+    expect(loadStore().sessions).toHaveLength(0);
+  });
+  it('is not offered for a future date or a day that already has two sessions', () => {
+    seed({ sessions: [doneSession('2026-01-05'), { ...doneSession('2026-01-05', 'jogging'), id: 'b', startedAt: new Date('2026-01-05T09:00:00').getTime(), stoppedAt: new Date('2026-01-05T09:12:00').getTime() }] });
+    render(<App />);
+    openDay('2026-01-05');
+    expect(screen.queryByRole('button', { name: 'Log a workout' })).toBeNull();
+    fireEvent.click(screen.getByTestId('cal-day-2026-01-20'));
+    expect(screen.queryByRole('button', { name: 'Log a workout' })).toBeNull();
+  });
+});

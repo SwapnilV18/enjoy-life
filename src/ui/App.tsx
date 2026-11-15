@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { dateKey } from '../domain/dates';
 import type { WorkoutTypeId } from '../domain/library';
-import { MAX_SESSIONS_PER_DAY, discardSession, doneToday, editSessionTimes, extraType, finishAt, finishSession, isStale, logSets, sessionsOn, startSession, streakFor, todaysPlan, type EditResult } from '../domain/session';
+import { MAX_SESSIONS_PER_DAY, addPastSession, discardSession, doneToday, editSessionTimes, extraType, finishAt, finishSession, isStale, logSets, sessionsOn, startSession, streakFor, todaysPlan, type EditResult } from '../domain/session';
 import { NUDGES, nextMessage } from '../domain/nudge';
 import type { LoggedSet, Session } from '../domain/types';
 import { loadStore, requestPersistence, saveStore, type Store } from '../storage';
@@ -91,6 +91,11 @@ export function App() {
         onBack={() => setView('home')}
         onSave={(id: string, start: number, stop: number): EditResult => {
           const r = editSessionTimes(ref.current, id, start, stop, Date.now());
+          if (r.ok) commit(r.store);
+          return r;
+        }}
+        onAdd={(w): EditResult => {
+          const r = addPastSession(ref.current, w, Date.now());
           if (r.ok) commit(r.store);
           return r;
         }}

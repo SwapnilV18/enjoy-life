@@ -15,26 +15,38 @@ export function workoutDays(dates: DateKey[]): DateKey[] {
   return [...new Set(dates)].sort();
 }
 
-export function weekProgress(days: DateKey[], today: DateKey): number {
+/** Sessions per date, capped at 2 (one regular plus at most one extra). */
+function perDay(dates: DateKey[]): Map<DateKey, number> {
+  const m = new Map<DateKey, number>();
+  for (const d of dates) m.set(d, Math.min(2, (m.get(d) ?? 0) + 1));
+  return m;
+}
+
+/** Workout days in the Mon–Sun week of `today`; an extra session on a day counts as one more. */
+export function weekProgress(dates: DateKey[], today: DateKey): number {
   const ws = weekStart(today);
   const we = addDays(ws, 6);
-  return new Set(days.filter((d) => d >= ws && d <= we)).size;
+  let n = 0;
+  for (const [d, c] of perDay(dates)) if (d >= ws && d <= we) n += c;
+  return n;
 }
 
 /**
- * Streak is derived from the workout days and today's date.
- * Walk from the first workout day to yesterday; in each Mon–Sun week count missed (elapsed, workout-less)
- * days. The third missed day in a week (5 workouts no longer reachable) resets the run to 0.
- * Today is never counted as missed.
+ * Streak is derived from the session dates (duplicates kept: a second session on a day is an extra) and today.
+ * Walk from the first workout day to today; each workout day adds 1 (2 with an extra) to the run. In each Mon–Sun
+ * week count missed (elapsed, workout-less) days; every extra done on or before a day offsets one miss. The third
+ * unoffset miss in a week (5 workouts no longer reachable) resets the run to 0. Today is never counted as missed.
  */
 export function computeStreak(dates: DateKey[], today: DateKey): StreakInfo {
-  const days = workoutDays(dates).filter((d) => d <= today);
-  const weekCount = weekProgress(days, today);
+  const upto = dates.filter((d) => d <= today);
+  const counts = perDay(upto);
+  const days = [...counts.keys()].sort();
+  const weekCount = weekProgress(upto, today);
   if (days.length === 0) return { streak: 0, weekCount, target: WEEK_TARGET };
 
-  const set = new Set(days);
   let run = 0;
   let missedInWeek = 0;
+  let credits = 0;
   let curWeek = weekStart(days[0]);
   const span = daysBetween(days[0], today);
   for (let i = 0; i <= span; i++) {
@@ -43,12 +55,15 @@ export function computeStreak(dates: DateKey[], today: DateKey): StreakInfo {
     if (ws !== curWeek) {
       curWeek = ws;
       missedInWeek = 0;
+      credits = 0;
     }
-    if (set.has(d)) {
-      run += 1;
+    const c = counts.get(d);
+    if (c) {
+      run += c;
+      credits += c - 1;
     } else if (d < today) {
       missedInWeek += 1;
-      if (missedInWeek >= 3) run = 0;
+      if (missedInWeek - credits >= 3) run = 0;
     }
   }
   return { streak: run, weekCount, target: WEEK_TARGET };

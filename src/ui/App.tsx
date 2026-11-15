@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { dateKey } from '../domain/dates';
 import type { WorkoutTypeId } from '../domain/library';
-import { discardSession, doneToday, finishSession, logSets, startSession, streakFor, todaysPlan } from '../domain/session';
+import { MAX_SESSIONS_PER_DAY, discardSession, doneToday, editSessionTimes, extraType, finishAt, finishSession, isStale, logSets, sessionsOn, startSession, streakFor, todaysPlan, type EditResult } from '../domain/session';
 import { NUDGES, nextMessage } from '../domain/nudge';
 import type { LoggedSet, Session } from '../domain/types';
 import { loadStore, requestPersistence, saveStore, type Store } from '../storage';
 import { Celebration } from './Celebration';
+import { Forgotten, History } from './History';
 import { Home } from './Home';
 import { SessionScreen } from './Session';
 
@@ -14,6 +15,7 @@ export function App() {
   const ref = useRef(store);
   const [finished, setFinished] = useState<Session | null>(null);
   const [today, setToday] = useState(() => dateKey(Date.now()));
+  const [view, setView] = useState<'home' | 'history'>('home');
 
   const commit = (s: Store) => {
     ref.current = s;
@@ -49,6 +51,20 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', open);
   }, []);
 
+  if (store.activeSession && isStale(store.activeSession, Date.now())) {
+    return (
+      <Forgotten
+        session={store.activeSession}
+        onFinish={(stopMs: number): EditResult => {
+          const r = finishAt(ref.current, stopMs, Date.now());
+          if (r.ok) commit(r.store);
+          return r;
+        }}
+        onDiscard={() => commit(discardSession(ref.current))}
+      />
+    );
+  }
+
   if (store.activeSession) {
     return (
       <SessionScreen
@@ -68,9 +84,26 @@ export function App() {
   const streak = streakFor(store, today);
   if (finished) return <Celebration session={finished} streak={streak} onHome={() => setFinished(null)} />;
 
+  if (view === 'history') {
+    return (
+      <History
+        store={store}
+        onBack={() => setView('home')}
+        onSave={(id: string, start: number, stop: number): EditResult => {
+          const r = editSessionTimes(ref.current, id, start, stop, Date.now());
+          if (r.ok) commit(r.store);
+          return r;
+        }}
+      />
+    );
+  }
+
   return (
     <Home
       rec={plan.rec}
+      canExtra={sessionsOn(store, today).length < MAX_SESSIONS_PER_DAY}
+      extraType={extraType(store, today)}
+      onHistory={() => setView('history')}
       nudge={nudge ?? undefined}
       streak={streak}
       done={doneToday(store, today)}

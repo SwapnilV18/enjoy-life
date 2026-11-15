@@ -198,3 +198,72 @@ describe('discreet naming on screen', () => {
     expect(document.body.textContent).not.toMatch(banned);
   });
 });
+
+describe('Extra session', () => {
+  it('offers an extra after the first session and counts it', () => {
+    seed({ sessions: [doneSession(dateKey(NOW))] });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Do an extra session' }));
+    expect(screen.getByRole('button', { name: /Finish/i })).toBeTruthy();
+    expect(loadStore().activeSession?.date).toBe(dateKey(NOW));
+  });
+  it('offers nothing more after two sessions', () => {
+    seed({ sessions: [doneSession(dateKey(NOW)), { ...doneSession(dateKey(NOW), 'jogging'), id: 'b', startedAt: NOW.getTime() + 3_600_000, stoppedAt: NOW.getTime() + 4_000_000 }] });
+    render(<App />);
+    expect(screen.queryByRole('button', { name: 'Do an extra session' })).toBeNull();
+    expect(screen.getByTestId('week-progress').textContent).toBe('2 of 5');
+  });
+});
+
+describe('History', () => {
+  const open = () => fireEvent.click(screen.getByRole('button', { name: 'History' }));
+  it('marks trained days and extras, and navigates months', () => {
+    seed({ sessions: [doneSession('2026-01-03'), doneSession('2026-01-05'), { ...doneSession('2026-01-05', 'jogging'), id: 'x', startedAt: new Date('2026-01-05T09:00:00').getTime(), stoppedAt: new Date('2026-01-05T09:12:00').getTime() }] });
+    render(<App />);
+    open();
+    expect(screen.getByTestId('cal-day-2026-01-03').getAttribute('data-sessions')).toBe('1');
+    expect(screen.getByTestId('cal-day-2026-01-05').className).toContain('extra');
+    expect(screen.getByTestId('cal-day-2026-01-04').getAttribute('data-sessions')).toBe('0');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }));
+    expect(screen.getByTestId('cal-title').textContent).toMatch(/December/);
+    expect(document.querySelectorAll('.cal .day.on').length).toBe(0);
+  });
+  it('shows a day log and an empty-day message', () => {
+    seed({ sessions: [doneSession('2026-01-05')] });
+    render(<App />);
+    open();
+    fireEvent.click(screen.getByTestId('cal-day-2026-01-05'));
+    expect(within(screen.getByTestId('day-log')).getByText('Yoga')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('cal-day-2026-01-06'));
+    expect(screen.getByTestId('no-session')).toBeTruthy();
+  });
+  it('saves a valid time edit and refuses an invalid one', () => {
+    seed({ sessions: [doneSession('2026-01-05')] });
+    render(<App />);
+    open();
+    fireEvent.click(screen.getByTestId('cal-day-2026-01-05'));
+    const end = screen.getByLabelText('End time') as HTMLInputElement;
+    fireEvent.input(end, { target: { value: '2026-01-05T07:30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save times' }));
+    expect(screen.getByTestId('edit-msg').textContent).toBe('Saved.');
+    expect(loadStore().sessions[0].stoppedAt).toBe(new Date('2026-01-05T07:30').getTime());
+    fireEvent.input(end, { target: { value: '2026-01-05T06:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save times' }));
+    expect(screen.getByTestId('edit-msg').textContent).toMatch(/after the start/);
+    expect(loadStore().sessions[0].stoppedAt).toBe(new Date('2026-01-05T07:30').getTime());
+  });
+});
+
+describe('Forgotten session', () => {
+  it('lets you finish a stale running session at a chosen time', () => {
+    const yesterday = new Date(2026, 0, 6, 7, 0).getTime();
+    seed({ activeSession: { id: 'old', date: '2026-01-06', type: 'yoga', durationMin: 15, startedAt: yesterday, completed: false, sets: {} } });
+    render(<App />);
+    expect(screen.getByTestId('forgotten')).toBeTruthy();
+    fireEvent.input(screen.getByLabelText('End time'), { target: { value: '2026-01-06T07:14' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish it at this time' }));
+    const s = loadStore();
+    expect(s.activeSession).toBeNull();
+    expect(s.sessions[0]).toMatchObject({ completed: true, date: '2026-01-06', stoppedAt: new Date('2026-01-06T07:14').getTime() });
+  });
+});

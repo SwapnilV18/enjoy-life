@@ -13,6 +13,8 @@ Built with Preact, TypeScript and Vite; tested with Vitest.
 - **Session types**: Jogging (HIIT), Back and Legs, Chest and Legs, Biceps and Shoulders, Triceps and Abs, Yoga. Jogging and Yoga run as timed sequences without set fields.
 - **Landing screen**: a large two-style "Enjoy" / "Life" masthead and a hero streak (flame, big number, five week dots) above the Start button.
 - **Reminder message**: each time you open the app on a day you have not trained yet, a short fresh message appears above today's session. Messages are shuffled so none repeats until all have been seen, and never twice in a row.
+- **Extra session**: after today's session you can do one more. It counts as one more day this week and offsets one missed day in the same week. You can pick any session type for it.
+- **History**: a month calendar marking the days you trained (extras are ringed); tap a day to see its sessions, and edit a session's start and end time if you forgot to stop it. A session left running from earlier asks when you finished.
 - **Streak**: weekly target of 5 (Mon–Sun) with up to 2 rest days per week; the third missed day resets the streak. Derived from history, never stored.
 - **Celebration**: an animated "I know how you are feeling… SuperStar." screen after finishing, with a reduced-motion fallback, then a summary.
 - **Offline and installable**: works in airplane mode after the first load; installs to the iPhone Home Screen as "Enjoy Life".

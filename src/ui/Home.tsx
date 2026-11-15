@@ -56,10 +56,13 @@ interface Props {
   streak: StreakInfo;
   done?: Session;
   nudge?: string;
+  canExtra?: boolean;
+  extraType?: WorkoutTypeId;
+  onHistory?: () => void;
   onStart: (type: WorkoutTypeId) => void;
 }
 
-export function Home({ rec, streak, done, nudge, onStart }: Props) {
+export function Home({ rec, streak, done, nudge, canExtra, extraType, onHistory, onStart }: Props) {
   const [choosing, setChoosing] = useState(false);
   if (done) {
     return (
@@ -68,7 +71,24 @@ export function Home({ rec, streak, done, nudge, onStart }: Props) {
         <StreakHero info={streak} />
         <p class="done" data-testid="done-today">Today is done. SuperStar.</p>
         <p class="meta">{getType(done.type).name}{done.stoppedAt ? ` · ${clock(done.startedAt)} – ${clock(done.stoppedAt)}` : ''}</p>
-        <p class="meta">See you tomorrow.</p>
+        {canExtra ? (
+          <>
+            <button class="primary" onClick={() => onStart(extraType ?? rec.type)}>Do an extra session</button>
+            <p class="meta">{getType(extraType ?? rec.type).name} · counts as one more day this week</p>
+            {choosing ? (
+              <div class="chooser" role="group" aria-label="Choose another type">
+                {WORKOUT_TYPES.map((t) => (
+                  <button key={t.id} class={t.id === (extraType ?? rec.type) ? 'chip on' : 'chip'} onClick={() => onStart(t.id)}>{t.name}</button>
+                ))}
+              </div>
+            ) : (
+              <button class="link" onClick={() => setChoosing(true)}>Pick another type</button>
+            )}
+          </>
+        ) : (
+          <p class="meta">Two sessions done today. See you tomorrow.</p>
+        )}
+        {onHistory && <button class="link" onClick={onHistory}>History</button>}
       </main>
     );
   }
@@ -90,6 +110,7 @@ export function Home({ rec, streak, done, nudge, onStart }: Props) {
       ) : (
         <button class="link" onClick={() => setChoosing(true)}>Do something else</button>
       )}
+      {onHistory && <button class="link" onClick={onHistory}>History</button>}
     </main>
   );
 }

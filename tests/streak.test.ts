@@ -11,8 +11,11 @@ describe('week progress', () => {
     expect(info.weekCount).toBe(3);
     expect(info.target).toBe(5);
   });
-  it('duplicate day counts once', () => {
-    expect(computeStreak([d(0), d(0)], d(0))).toMatchObject({ streak: 1, weekCount: 1 });
+  it('a second session on one day is an extra and counts as one more', () => {
+    expect(computeStreak([d(0), d(0)], d(0))).toMatchObject({ streak: 2, weekCount: 2 });
+  });
+  it('a third session on a day is not counted', () => {
+    expect(computeStreak([d(0), d(0), d(0)], d(0))).toMatchObject({ streak: 2, weekCount: 2 });
   });
   it('weekProgress only counts the Mon–Sun week of today', () => {
     expect(weekProgress([d(-1), d(0), d(6), d(7)], d(2))).toBe(2);
@@ -59,5 +62,29 @@ describe('streak', () => {
       return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     };
     expect(k(2026, 0, 5, 23)).toBe('2026-01-05');
+  });
+});
+
+describe('extras', () => {
+  it('extra raises week count and streak', () => {
+    const info = computeStreak([d(0), d(1), d(2), d(2)], d(2));
+    expect(info).toMatchObject({ streak: 4, weekCount: 4 });
+  });
+  it('extra offsets a missed day (Mon extra, Wed/Thu/Fri missed)', () => {
+    // evaluated Saturday morning: Wed, Thu, Fri are missed
+    expect(computeStreak([d(0), d(0), d(1)], d(5)).streak).toBe(3);
+    // without the extra, three misses would reset
+    expect(computeStreak([d(0), d(1)], d(5)).streak).toBe(0);
+  });
+  it('a fourth miss still resets', () => {
+    expect(computeStreak([d(0), d(0)], d(5)).streak).toBe(0);
+  });
+  it('extra after a reset does not restore the streak', () => {
+    // Mon done; Tue, Wed, Thu missed -> reset; Fri regular + extra -> run restarts at 2, not 4
+    expect(computeStreak([d(0), d(4), d(4)], d(4)).streak).toBe(2);
+  });
+  it('extras do not carry into the next week', () => {
+    // week 1: Mon extra; week 2: Mon, Tue, Wed, Thu missed (3 offsets nothing from last week)
+    expect(computeStreak([d(0), d(0), d(7)], d(11)).streak).toBe(0);
   });
 });
